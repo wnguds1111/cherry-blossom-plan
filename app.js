@@ -734,11 +734,20 @@ function updateMapMarkers() {
         bounds.extend(position);
         validCount++;
 
+        const isPikmin = (currentDay === 'pikmin');
+
         var markerEl = document.createElement('div');
-        markerEl.style.cssText = 'background:#ec4899; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(236,72,153,0.4); border:2px solid white; cursor:pointer; transition:transform 0.2s;';
-        markerEl.innerText = (idx + 1);
-        markerEl.onmouseenter = function () { this.style.transform = 'scale(1.3)'; };
-        markerEl.onmouseleave = function () { this.style.transform = 'scale(1)'; };
+        if (isPikmin) {
+            // 피크민: 작은 보라색 도트만 노출
+            markerEl.style.cssText = 'background:#a855f7; width:14px; height:14px; border-radius:50%; box-shadow:0 2px 6px rgba(168,85,247,0.5); border:2px solid white; cursor:pointer; transition:transform 0.2s;';
+            markerEl.onmouseenter = function () { this.style.transform = 'scale(1.5)'; };
+            markerEl.onmouseleave = function () { this.style.transform = 'scale(1)'; };
+        } else {
+            markerEl.style.cssText = 'background:#ec4899; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(236,72,153,0.4); border:2px solid white; cursor:pointer; transition:transform 0.2s;';
+            markerEl.innerText = (idx + 1);
+            markerEl.onmouseenter = function () { this.style.transform = 'scale(1.3)'; };
+            markerEl.onmouseleave = function () { this.style.transform = 'scale(1)'; };
+        }
         (function (pos, placeName) {
             markerEl.onclick = function () { onMarkerClick(pos, placeName); };
         })(position, item.name);
@@ -805,6 +814,8 @@ function renderDayList() {
 
     const dragIcon = `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path></svg>`;
 
+    const isPikmin = (currentDay === 'pikmin');
+
     let html = '';
     items.forEach((item, idx) => {
         const num = idx + 1;
@@ -812,7 +823,26 @@ function renderDayList() {
         const menuCount = (item.menus && item.menus.length > 0) ? item.menus.length : 0;
         const menuBadge = menuCount > 0 ? '<span style="background:#ec4899; color:#fff; font-size:10px; font-weight:900; padding:2px 6px; border-radius:10px; margin-left:4px;">' + menuCount + '</span>' : '';
         const goUrl = item.goLink || kakaoLink;
-        html += `
+
+        if (isPikmin) {
+            // 피크민 탭: 간소화 뷰 (도트 번호, 장소명, 메모만)
+            html += `
+            <div class="tl-item" draggable="true" ondragstart="handleDragStart(event, ${idx})" ondragleave="handleDragLeave(event)" ondragover="handleDragOver(event, ${idx})" ondrop="handleDrop(event, ${idx})" ondragend="handleDragEnd(event)">
+                <div class="drag-handle">${dragIcon}</div>
+                <div style="width:14px; height:14px; border-radius:50%; background:#a855f7; flex-shrink:0; margin-top:2px;"></div>
+                <div class="tl-content">
+                    <div class="tl-header">
+                        <div class="tl-actions">
+                            <button onclick="openModal(${idx})">수정</button>
+                            <button style="color:#ef4444;" onclick="deletePlace(${item.id})">삭제</button>
+                        </div>
+                    </div>
+                    <div class="tl-title">${item.name}</div>
+                    ${item.link ? `<div class="tl-memo">📝 ${item.link.replace(/\n/g, '<br>')}</div>` : ''}
+                </div>
+            </div>`;
+        } else {
+            html += `
         <div class="tl-item" draggable="true" ondragstart="handleDragStart(event, ${idx})" ondragleave="handleDragLeave(event)" ondragover="handleDragOver(event, ${idx})" ondrop="handleDrop(event, ${idx})" ondragend="handleDragEnd(event)">
             <div class="drag-handle">${dragIcon}</div>
             <div class="tl-num">${num}</div>
@@ -842,6 +872,7 @@ function renderDayList() {
                 ${item.link ? `<div class="tl-memo">📝 ${item.link.replace(/\n/g, '<br>')}</div>` : ''}
             </div>
         </div>`;
+        } // end else (non-pikmin)
     });
 
     if (items.length === 0) {
@@ -895,9 +926,16 @@ function openModal(editIdx = -1) {
     const modal = document.getElementById('addModal');
     document.getElementById('searchResults').classList.remove('active');
 
+    const isPikmin = (currentDay === 'pikmin');
+    // 피크민 탭: 시간/메뉴투표 폼 숨기기
+    document.getElementById('placeTime').closest('.form-group').style.display = isPikmin ? 'none' : '';
+    document.querySelectorAll('.form-group').forEach(fg => {
+        if (fg.querySelector('#menuVoteY')) fg.style.display = isPikmin ? 'none' : '';
+    });
+
     if (editIdx > -1) {
         const item = planData.days[currentDay][editIdx];
-        document.getElementById('modalTitle').innerText = '일정 상세 수정';
+        document.getElementById('modalTitle').innerText = isPikmin ? '🌱 피크민 스팟 수정' : '일정 상세 수정';
         document.getElementById('editItemIdx').value = editIdx;
         document.getElementById('placeTime').value = item.time;
         document.getElementById('placeName').value = item.name;
@@ -905,24 +943,26 @@ function openModal(editIdx = -1) {
         document.getElementById('placeLat').value = item.lat;
         document.getElementById('placeLng').value = item.lng;
         document.getElementById('placeSearch').value = item.name;
-        document.getElementById('modalSaveBtn').innerText = '일정 수정 완료';
+        document.getElementById('modalSaveBtn').innerText = isPikmin ? '스팟 수정 완료' : '일정 수정 완료';
         document.getElementById('goLinkInput').value = item.goLink || '';
 
         // 좌표 기반 도로명 주소 역지오코딩
         if (item.lat && item.lng) {
             fetchRoadAddress(item.lat, item.lng, item.name);
         }
-        // 메뉴 투표 토글 상태
-        var mv = item.menuVote === 'Y' ? 'Y' : 'N';
-        document.getElementById('menuVoteToggle').value = mv;
-        document.getElementById('menuLabelInput').value = item.menuLabel || '';
-        document.getElementById('menuLabelWrap').style.display = mv === 'Y' ? 'flex' : 'none';
-        var uv = item.useVoting === 'N' ? 'N' : 'Y';
-        document.getElementById('useVotingToggle').value = uv;
-        setUseVotingUI(uv);
-        setMenuVoteUI(mv);
+        if (!isPikmin) {
+            // 메뉴 투표 토글 상태
+            var mv = item.menuVote === 'Y' ? 'Y' : 'N';
+            document.getElementById('menuVoteToggle').value = mv;
+            document.getElementById('menuLabelInput').value = item.menuLabel || '';
+            document.getElementById('menuLabelWrap').style.display = mv === 'Y' ? 'flex' : 'none';
+            var uv = item.useVoting === 'N' ? 'N' : 'Y';
+            document.getElementById('useVotingToggle').value = uv;
+            setUseVotingUI(uv);
+            setMenuVoteUI(mv);
+        }
     } else {
-        document.getElementById('modalTitle').innerText = '새로운 일정 추가';
+        document.getElementById('modalTitle').innerText = isPikmin ? '🌱 피크민 스팟 추가' : '새로운 일정 추가';
         document.getElementById('editItemIdx').value = -1;
         document.getElementById('placeTime').value = '12:00';
         document.getElementById('placeName').value = '';
@@ -931,7 +971,7 @@ function openModal(editIdx = -1) {
         document.getElementById('placeLat').value = '';
         document.getElementById('placeLng').value = '';
         document.getElementById('placeSearch').value = '';
-        document.getElementById('modalSaveBtn').innerText = '일정 저장하기';
+        document.getElementById('modalSaveBtn').innerText = isPikmin ? '스팟 저장하기' : '일정 저장하기';
         document.getElementById('menuVoteToggle').value = 'N';
         document.getElementById('menuLabelInput').value = '';
         document.getElementById('menuLabelWrap').style.display = 'none';
@@ -1130,7 +1170,10 @@ function savePlace() {
         });
     }
 
-    planData.days[currentDay].sort((a, b) => a.time.localeCompare(b.time));
+    // 피크민 탭이면 시간 정렬 안 함
+    if (currentDay !== 'pikmin') {
+        planData.days[currentDay].sort((a, b) => a.time.localeCompare(b.time));
+    }
 
     closeModal();
     renderDayList();
