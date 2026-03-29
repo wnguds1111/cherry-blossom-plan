@@ -282,6 +282,30 @@
                     <label>상세 메모</label>
                     <textarea id="placeLink" class="form-input" placeholder="이곳에서 할 일이나 특징을 적어보세요." rows="2" style="resize:vertical; min-height:60px;"></textarea>
                 </div>
+                
+                <!-- Image paste editor for Pikmin schedule -->
+                <div class="form-group" id="imageEditorGroup">
+                    <label>이미지 (붙여넣기)</label>
+                    <div id="placeImageEditor" class="image-editor" contenteditable="true"
+                        style="border:2px dashed #e2e8f0; border-radius:12px; min-height:110px; padding:10px; overflow:auto; background:#f8fafc; color:#94a3b8; font-size:13px; font-weight:700; line-height:1.5;"
+                        data-placeholder="Ctrl+V 로 이미지를 붙여넣으세요 🖼️">
+                    </div>
+                    <style>
+                        #placeImageEditor img {
+                            width: 160px !important;
+                            height: 160px !important;
+                            object-fit: cover;
+                            border-radius: 12px;
+                            margin: 4px;
+                            display: inline-block;
+                            border: 2px solid #fbcfe8;
+                        }
+                        #placeImageEditor:empty::before {
+                            content: attr(data-placeholder);
+                            color: #cbd5e1;
+                        }
+                    </style>
+                </div>
 
                 <div class="form-group">
                     <label>바로가기 링크</label>
@@ -411,6 +435,29 @@
             </button>
             <button class="btn-close" style="position:absolute; top:20px; right:20px;"
                 onclick="document.getElementById('gameClearModal').classList.remove('active')">✕</button>
+        </div>
+    </div>
+    
+    <!-- Image Preview Modal -->
+    <div class="modal-overlay" id="imagePreviewModal">
+        <div class="modal-content" style="max-width:620px; padding:20px; max-height:85vh; display:flex; flex-direction:column;">
+            <div class="modal-header" style="margin-bottom:14px; flex-shrink:0;">
+                <h2 style="font-size:18px;">🖼️ 이미지 미리보기</h2>
+                <button class="btn-close" onclick="closeImagePreview()">✕</button>
+            </div>
+            <div id="imagePreviewBody" style="text-align:center; overflow-y:auto; flex:1; padding-right:4px;">
+                <style>
+                    #imagePreviewBody img {
+                        width: 200px !important;
+                        height: 200px !important;
+                        object-fit: cover;
+                        border-radius: 14px;
+                        margin: 6px;
+                        border: 2px solid #fbcfe8;
+                        box-shadow: 0 4px 12px rgba(236,72,153,0.15);
+                    }
+                </style>
+            </div>
         </div>
     </div>
 

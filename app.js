@@ -826,6 +826,7 @@ function renderDayList() {
 
         if (isPikmin) {
             // 피크민 탭: 간소화 뷰 (도트 번호, 장소명, 메모만)
+            const hasImg = !!(item.imageHtml && item.imageHtml.trim());
             html += `
             <div class="tl-item" draggable="true" ondragstart="handleDragStart(event, ${idx})" ondragleave="handleDragLeave(event)" ondragover="handleDragOver(event, ${idx})" ondrop="handleDrop(event, ${idx})" ondragend="handleDragEnd(event)">
                 <div class="drag-handle">${dragIcon}</div>
@@ -839,6 +840,7 @@ function renderDayList() {
                     </div>
                     <div class="tl-title">${item.name}</div>
                     ${item.link ? `<div class="tl-memo">📝 ${item.link.replace(/\n/g, '<br>')}</div>` : ''}
+                    ${hasImg ? `<button onclick="showImagePreview(${idx})" style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; padding:7px 14px; background:linear-gradient(135deg,#a855f7,#ec4899); color:#fff; border:none; border-radius:20px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 3px 10px rgba(168,85,247,0.3); transition:0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">🖼️ 이미지 확인</button>` : ''}
                 </div>
             </div>`;
         } else {
@@ -929,9 +931,16 @@ function openModal(editIdx = -1) {
     const isPikmin = (currentDay === 'pikmin');
     // 피크민 탭: 시간/메뉴투표 폼 숨기기
     document.getElementById('placeTime').closest('.form-group').style.display = isPikmin ? 'none' : '';
+    // 피크민이면 이미지 에디터 표시, 아니면 숨김
+    const imgGroup = document.getElementById('imageEditorGroup');
+    if (imgGroup) imgGroup.style.display = isPikmin ? '' : 'none';
     document.querySelectorAll('.form-group').forEach(fg => {
         if (fg.querySelector('#menuVoteY')) fg.style.display = isPikmin ? 'none' : '';
     });
+
+    // 이미지 에디터 초기화
+    const imgEditor = document.getElementById('placeImageEditor');
+    if (imgEditor) imgEditor.innerHTML = '';
 
     if (editIdx > -1) {
         const item = planData.days[currentDay][editIdx];
@@ -945,6 +954,8 @@ function openModal(editIdx = -1) {
         document.getElementById('placeSearch').value = item.name;
         document.getElementById('modalSaveBtn').innerText = isPikmin ? '스팟 수정 완료' : '일정 수정 완료';
         document.getElementById('goLinkInput').value = item.goLink || '';
+        // 이미지 복원
+        if (imgEditor && item.imageHtml) imgEditor.innerHTML = item.imageHtml;
 
         // 좌표 기반 도로명 주소 역지오코딩
         if (item.lat && item.lng) {
@@ -1154,7 +1165,10 @@ function savePlace() {
         item.menuLabel = document.getElementById('menuLabelInput').value.trim();
         item.useVoting = document.getElementById('useVotingToggle').value;
         item.goLink = document.getElementById('goLinkInput').value.trim();
+        const ie = document.getElementById('placeImageEditor');
+        if (ie) item.imageHtml = ie.innerHTML;
     } else {
+        const ie2 = document.getElementById('placeImageEditor');
         planData.days[currentDay].push({
             id: Date.now(),
             time: time,
@@ -1166,7 +1180,8 @@ function savePlace() {
             menuLabel: document.getElementById('menuLabelInput').value.trim(),
             useVoting: document.getElementById('useVotingToggle').value,
             goLink: document.getElementById('goLinkInput').value.trim(),
-            menus: []
+            menus: [],
+            imageHtml: ie2 ? ie2.innerHTML : ''
         });
     }
 
@@ -1200,6 +1215,31 @@ function openMenuPopup(idx) {
 function closeMenuPopup() {
     document.getElementById('menuPopupModal').classList.remove('active');
     menuPopupIdx = -1;
+}
+
+// 이미지 미리보기 팝업 열기 (idx: 피크민 일정 인덱스 또는 -1이면 에디터 내용)
+function showImagePreview(idx) {
+    const previewBody = document.getElementById('imagePreviewBody');
+    if (!previewBody) return;
+    let html = '';
+    if (typeof idx === 'number' && idx >= 0) {
+        // 등록된 일정의 imageHtml 불러오기
+        const item = planData.days[currentDay] && planData.days[currentDay][idx];
+        html = (item && item.imageHtml) ? item.imageHtml : '<p style="color:#94a3b8; font-size:14px; font-weight:700;">등록된 이미지가 없습니다.</p>';
+    } else {
+        // 편집 중인 에디터 내용 사용
+        const editor = document.getElementById('placeImageEditor');
+        html = (editor && editor.innerHTML.trim()) ? editor.innerHTML : '<p style="color:#94a3b8; font-size:14px; font-weight:700;">이미지를 붙여넣기 해주세요.</p>';
+    }
+    previewBody.innerHTML = html;
+    const modal = document.getElementById('imagePreviewModal');
+    if (modal) modal.classList.add('active');
+}
+
+// 이미지 미리보기 팝업 닫기
+function closeImagePreview() {
+    const modal = document.getElementById('imagePreviewModal');
+    if (modal) modal.classList.remove('active');
 }
 
 function renderMenuPopup(item) {
