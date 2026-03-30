@@ -928,6 +928,27 @@ function openModal(editIdx = -1) {
     const modal = document.getElementById('addModal');
     document.getElementById('searchResults').classList.remove('active');
 
+    const daySelect = document.getElementById('placeDay');
+    if (daySelect) {
+        let optionsHtml = '';
+        Object.keys(planData.days).sort((a,b) => a==='pikmin'?1:b==='pikmin'?-1:parseInt(a)-parseInt(b)).forEach(dk => {
+            optionsHtml += `<option value="${dk}">${dk === 'pikmin' ? '🌱 피크민 스팟' : 'Day ' + dk}</option>`;
+        });
+        daySelect.innerHTML = optionsHtml;
+        daySelect.value = currentDay.toString();
+        
+        // 날짜 변경 시 UI 실시간 토글
+        daySelect.onchange = function() {
+            const pickPik = (this.value === 'pikmin');
+            document.getElementById('placeTime').closest('.form-group').style.display = pickPik ? 'none' : '';
+            const imgG = document.getElementById('imageEditorGroup');
+            if (imgG) imgG.style.display = pickPik ? '' : 'none';
+            document.querySelectorAll('.form-group').forEach(fg => {
+                if (fg.querySelector('#menuVoteY')) fg.style.display = pickPik ? 'none' : '';
+            });
+        };
+    }
+
     const isPikmin = (currentDay === 'pikmin');
     // 피크민 탭: 시간/메뉴투표 폼 숨기기
     document.getElementById('placeTime').closest('.form-group').style.display = isPikmin ? 'none' : '';
@@ -1138,6 +1159,10 @@ function savePlace() {
     const idxStr = document.getElementById('editItemIdx').value;
     const isEdit = idxStr !== "-1";
 
+    const daySel = document.getElementById('placeDay');
+    const targetDayVal = daySel ? daySel.value : currentDay.toString();
+    const targetDay = targetDayVal === 'pikmin' ? 'pikmin' : (parseInt(targetDayVal) || currentDay);
+
     const time = document.getElementById('placeTime').value || "12:00";
     const name = document.getElementById('placeName').value;
     const link = document.getElementById('placeLink').value;
@@ -1154,6 +1179,8 @@ function savePlace() {
         finalLng = 129.11 + (Math.random() * 0.04 - 0.02);
     }
 
+    if (!planData.days[targetDay]) planData.days[targetDay] = [];
+
     if (isEdit) {
         const item = planData.days[currentDay][parseInt(idxStr)];
         item.time = time;
@@ -1167,9 +1194,15 @@ function savePlace() {
         item.goLink = document.getElementById('goLinkInput').value.trim();
         const ie = document.getElementById('placeImageEditor');
         if (ie) item.imageHtml = ie.innerHTML;
+
+        // 선택한 날짜가 다를 경우 이동
+        if (targetDay !== currentDay) {
+            planData.days[currentDay].splice(parseInt(idxStr), 1);
+            planData.days[targetDay].push(item);
+        }
     } else {
         const ie2 = document.getElementById('placeImageEditor');
-        planData.days[currentDay].push({
+        planData.days[targetDay].push({
             id: Date.now(),
             time: time,
             name: name,
@@ -1185,13 +1218,19 @@ function savePlace() {
         });
     }
 
-    // 피크민 탭이면 시간 정렬 안 함
-    if (currentDay !== 'pikmin') {
-        planData.days[currentDay].sort((a, b) => a.time.localeCompare(b.time));
+    // 피크민 탭이 아니면 시간 정렬
+    if (targetDay !== 'pikmin') {
+        planData.days[targetDay].sort((a, b) => a.time.localeCompare(b.time));
     }
 
     closeModal();
-    renderDayList();
+    
+    // 날짜가 이동되었다면 해당 날짜 탭으로 자동 이동
+    if (targetDay !== currentDay) {
+        switchDay(targetDay);
+    } else {
+        renderDayList();
+    }
     savePlanData();
 }
 
